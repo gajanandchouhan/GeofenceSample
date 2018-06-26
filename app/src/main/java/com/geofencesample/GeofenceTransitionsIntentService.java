@@ -3,6 +3,7 @@ package com.geofencesample;
 import android.app.IntentService;
 import android.content.Intent;
 import android.content.Context;
+import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -24,10 +25,14 @@ public class GeofenceTransitionsIntentService extends IntentService {
     /**
      * Creates an IntentService.  Invoked by your subclass's constructor.
      *
-     * @param name Used to name the worker thread, important only for debugging.
      */
-    public GeofenceTransitionsIntentService(String name) {
-        super(name);
+    public GeofenceTransitionsIntentService() {
+        super("GeofenceTransitionsIntentService");
+    }
+
+    @Override
+    public int onStartCommand(@Nullable Intent intent, int flags, int startId) {
+        return super.onStartCommand(intent, flags, startId);
     }
 
     protected void onHandleIntent(Intent intent) {
@@ -46,7 +51,9 @@ public class GeofenceTransitionsIntentService extends IntentService {
             // Get the geofences that were triggered. A single event can trigger
             // multiple geofences.
             List<Geofence> triggeringGeofences = geofencingEvent.getTriggeringGeofences();
-            LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("geofence"));
+            Intent intent1 = new Intent("geofence");
+            intent1.putExtra("type",geofenceTransition);
+            LocalBroadcastManager.getInstance(this).sendBroadcast(intent1);
 
         } else {
             // Log the error.

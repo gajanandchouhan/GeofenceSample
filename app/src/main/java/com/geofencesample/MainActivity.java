@@ -9,17 +9,23 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.gms.common.internal.service.Common;
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingClient;
 import com.google.android.gms.location.GeofencingRequest;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -29,6 +35,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -43,6 +50,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private List<Geofence> geofences;
     private PendingIntent mGeofencePendingIntent;
     private Circle geoFenceLimits;
+    private Marker currentLocationMarker;
+    private Marker current;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,6 +107,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     public void onSuccess(Void aVoid) {
                         // Geofences added
                         drawGeofenceCircle();
+                        startLocationMonitor();
                         Toast.makeText(MainActivity.this, "Geofence added successfully", Toast.LENGTH_LONG).show();
                         // ...
                     }
@@ -110,6 +120,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         Toast.makeText(MainActivity.this, "Soryy geofence can not add.", Toast.LENGTH_LONG).show();
                     }
                 });
+
     }
 
     private PendingIntent getGeofencePendingIntent() {
@@ -123,6 +134,36 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mGeofencePendingIntent = PendingIntent.getService(this, 0, intent, PendingIntent.
                 FLAG_UPDATE_CURRENT);
         return mGeofencePendingIntent;
+    }
+
+
+    @SuppressLint("MissingPermission")
+    private void startLocationMonitor() {
+        Log.d("MainActvitu", "start location monitor");
+        final LocationRequest locationRequest = LocationRequest.create()
+                .setInterval(2000)
+                .setFastestInterval(1000)
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        LocationServices.getFusedLocationProviderClient(this).requestLocationUpdates(locationRequest, new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+                if (locationResult != null) {
+                    Location location = locationResult.getLastLocation();
+                    LatLng sydney = new LatLng(location.getLatitude(), location.getLongitude());
+                    if (current != null) {
+                        current.setPosition(sydney);
+                    } else {
+                        current = mMap.addMarker(new MarkerOptions().position(sydney).title("current"));
+                        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+                        float zoom = 13f;
+                        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(sydney, zoom);
+                        mMap.animateCamera(cameraUpdate);
+                    }
+                    Log.d("LAST LOCATION", "Location Change Lat Lng " + location.getLatitude() + " " + location.getLongitude());
+                }
+            }
+        }, null);
     }
 
     private GeofencingRequest getGeofencingRequest() {
@@ -145,13 +186,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Add a marker in Sydney and move the camera
+    /*    // Add a marker in Sydney and move the camera
         LatLng sydney = new LatLng(22.7533, 75.8937);
         mMap.addMarker(new MarkerOptions().position(sydney).title("Indore"));
         mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
         float zoom = 13f;
         CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(sydney, zoom);
-        googleMap.animateCamera(cameraUpdate);
+        googleMap.animateCamera(cameraUpdate);*/
+        mMap.getUiSettings().setZoomControlsEnabled(true);
     }
 
     @Override
@@ -201,7 +243,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if (geoFenceLimits != null)
             geoFenceLimits.remove();
         CircleOptions circleOptions = new CircleOptions()
-                .center(new LatLng(22.7533,75.8937))
+                .center(new LatLng(22.7533, 75.8937))
                 .strokeColor(Color.argb(50, 70, 70, 70))
                 .fillColor(Color.argb(100, 150, 150, 150))
                 .radius(3000);
